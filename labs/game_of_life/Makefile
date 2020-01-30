@@ -16,6 +16,7 @@ default: compile
 
 obj:
 	mkdir -p $@
+	touch $@/.gitignore
 
 $(OBJS): $(OBJD)/%.o : src/%.c
 	$(STD_CC) $(INCLUDE) -o $@ $<
