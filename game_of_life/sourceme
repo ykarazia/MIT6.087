@@ -1,0 +1,1 @@
+gcc -g -O0 -Wall -Iinc src/lifegame.c src/lab1a.c -o obj/lab1a.o
