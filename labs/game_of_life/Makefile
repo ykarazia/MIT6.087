@@ -1,4 +1,4 @@
-.PHONY: print compile default
+.PHONY: print compile default link
 .DEFAULT: compile
 
 #SRC FILES
@@ -12,14 +12,17 @@ DIRS=$(OBJD)
 STD_CC?=gcc
 INCLUDE?= -I./inc
 
-default: compile
+default: link
 
 obj:
 	mkdir -p $@
 	touch $@/.gitignore
 
 $(OBJS): $(OBJD)/%.o : src/%.c
-	$(STD_CC) $(INCLUDE) -o $@ $<
+	$(STD_CC) -c -g $(INCLUDE) -o $@ $<
+
+$(TARGET_EXEC) : $(OBJS)
+	$(STD_CC) -g -o $@ $^ 
 
 print:
 	@echo $(SRCS)
@@ -27,5 +30,8 @@ print:
 
 compile: $(DIRS) $(OBJS)
 
+link: $(DIRS) $(TARGET_EXEC)
+
 clean:
 	rm -rf $(OBJD)
+	rm $(TARGET_EXEC)
