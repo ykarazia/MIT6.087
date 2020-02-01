@@ -45,7 +45,39 @@ void initialize_world_from_file(const char * filename) {
 	   Also need to reset the next generation to DEAD
 	 */
 
+  int width,height;
+  char c[265];
+  FILE *fp = fopen(filename,"r");
 
+  width=get_world_width();
+  height=get_world_height();
+
+	for (int i = 0; i < WORLDWIDTH; i++)
+		for (int j = 0; j < WORLDHEIGHT; j++)
+			world[i][j] = nextstates[i][j] = DEAD;
+
+
+  if(fp == NULL) {
+    printf("Error, could not file file:%s",filename);
+    exit(1);
+  } else {
+    //Read lines from file.
+    int hcount=0;
+    while (fgets(c,sizeof(c),fp)) {
+      int el;
+
+      if(hcount>height) {
+        printf("File has more lines that MAX, file:%d, max:%d",hcount,WORLDHEIGHT);
+        exit(1);
+      }
+
+      for(el=0 ; el<width; el++)
+        if(c[el] == CHAR_ALIVE)
+          world[el][hcount] = ALIVE;
+      hcount++;
+    }
+  }
+  fclose(fp);
 }
 
 void save_world_to_file(const char * filename) {
@@ -59,6 +91,19 @@ void save_world_to_file(const char * filename) {
 	   initialize_world_from_file(filename) above; we can use
 	   it to resume a game later
 	 */
+
+  FILE *fp = fopen(filename,"w");
+  char c;
+
+  for(int j=0; j<WORLDHEIGHT; j++) {
+    for(int i=0; i<WORLDWIDTH; i++) {
+      c = ( world[i][j] == ALIVE ) ? CHAR_ALIVE : CHAR_DEAD;
+      putc(c,fp);
+    }
+    putc('\n',fp);
+  }
+
+  fclose(fp);
 
 
 }

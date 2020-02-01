@@ -11,7 +11,11 @@
 /* add whatever other includes here */
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <string.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <errno.h>
+#include <sys/stat.h>
 /* number of generations to evolve the world */
 #define NUM_GENERATIONS 50
 /* hard-coded world size */
@@ -20,6 +24,13 @@
 /* character representations of cell states */
 #define CHAR_ALIVE '*'
 #define CHAR_DEAD ' '
+
+const char kPathSeparator =
+#ifdef _WIN32
+                            '\\';
+#else
+                            '/';
+#endif
 
 /* functions to implement */
 
@@ -38,23 +49,88 @@ int get_next_state(int x, int y);
    neighbors of the cell at (x,y) */
 int num_neighbors(int x, int y);
 
-int main(void)
+  typedef enum initType { HC, FLE } init_t;
+  //typedef enum initType init_t;
+
+void usage(void) {
+  printf("\
+      Usage: gameoflife [-h] [-o FILENAME] -f FILENAME\
+        -h : Print this usage information, and exit.\
+        -f FILENAME : Provide the filename by which you would like to initialize the game.\
+        -o FILENAME : Provide a save file to which the final world state will be saved.\
+      ");
+}
+
+int main(int argc, char *argv[])
 {
   int n;
   int height,width;
+  int opt;
+  char *fni;
+  char *fno;
+  char *fdo;
+  char *default_fdo = ".savefiles";
 
+  init_t init = HC;
   height=get_world_height();
   width=get_world_width();
 
 
-  /* TODO: initialize the world */
-  initialize_world();
+  //process commandline arguments to select input file
+  while( ( opt = (getopt(argc,argv,"i:o:d:h")) ) != -1 ) {
+    switch(opt) {
+      case 'h':
+        usage();
+        break;
+      case 'i':
+        init = FLE;
+        fni = optarg;
+        printf("Filename:: %s\n",fni);
+        break;
+      case 'o':
+        fno = optarg;
+        printf("Save File:: %s\n",fno);
+        break;
+      case 'd':
+        fdo = optarg;
+        printf("Save Directory:: %s\n",fdo);
+        break;
+    }
+  }
+
+  switch(init) {
+    case HC : 
+      initialize_world();
+      break;
+    case FLE:
+      initialize_world_from_file(fni);
+  }
+
+  printf("Initialized World\n");
+  output_world();
 
   for (n = 0; n < NUM_GENERATIONS; n++)
     next_generation();
 
-  /* TODO: output final world state */
+  printf("Final World\n");
   output_world();
+
+  if(fno) {
+    DIR *d;
+
+    if(!fdo)
+      fdo = default_fdo;
+
+    d = opendir(fdo);
+
+    if(!d) 
+      mkdir(fdo, 0777);
+    
+
+    chdir(fdo);
+    save_world_to_file(fno);
+    chdir("../");
+  }
 
   return 0;
 }
