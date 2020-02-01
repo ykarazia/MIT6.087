@@ -34,4 +34,4 @@ link: $(DIRS) $(TARGET_EXEC)
 
 clean:
 	rm -rf $(OBJD)
-	rm $(TARGET_EXEC)
+	rm -f $(TARGET_EXEC)
