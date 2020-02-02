@@ -3,7 +3,7 @@
 #include <string.h>
 
 #define MAX_SYMBOLS 255
-#define MAX_LEN     10
+#define MAX_LEN     20
 
 struct tnode
 {
@@ -53,7 +53,7 @@ void build_tree(FILE* fp)
 
 	while(!feof(fp))
 	{
-		items_read=fscanf(fp,"%c %s\n",&symbol,strcode);
+		items_read=fscanf(fp,"<tag>%c</tag>,%[01]\n",&symbol,strcode);
 		if(items_read!=2) break;
 		curr=root;
 		len=strlen(strcode);
@@ -102,6 +102,8 @@ void decode(FILE* fin,FILE* fout)
       printf("Decode error");
       exit(1);
     }
+
+    printf("%c \n", c);
 
     if (curr->isleaf) {
       fputc(curr->symbol,fout);

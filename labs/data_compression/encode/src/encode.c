@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 //#define MAX_SYMBOLS 255
 #define MAX_SYMBOLS 255
-#define MAX_LEN     7
+#define MAX_LEN    20 
 
 struct tnode
 {
@@ -54,6 +55,34 @@ void pq_display(struct tnode* head)
         printf("(%c,%f) ",p->symbol,p->freq);
     }
     printf("\n");
+}
+
+/*
+ *  parse_file function.
+ *
+ *  desc::
+ *    This function takes a filepointer as input, and an float pointer.
+ *    The function will generate frequency array information for each symbol.
+ */
+
+void parse_file ( FILE *infp, float *freqp ) {
+  unsigned long uniq_cnt = 0;
+  unsigned long scnt[MAX_SYMBOLS];
+  char c;
+
+  //Initialize array to 0
+  memset(scnt,0,sizeof(scnt));
+
+  //Keep track of occurance per symbol.
+  //Keep track of totals
+  while ( (c = fgetc(infp)) != EOF ) {
+    scnt[c] += 1;
+    uniq_cnt++;
+    printf("Found %c, %lu times\n",c,scnt[c-'a']);
+  }
+
+  for(int i=0; i<MAX_SYMBOLS; i++)
+    *(freqp+i) = ((float) scnt[i])/uniq_cnt;
 }
 
 /*
@@ -128,6 +157,10 @@ void generate_code(struct tnode* root,int depth)
 	{
 		symbol=root->symbol;
 		len   =depth;
+    if(depth > MAX_LEN) {
+      printf("Too deep. Limit is %d",MAX_LEN);
+      exit(1);
+    }
 		/*start backwards*/
 		code[symbol][len]=0;
     //Search backwards, and stop when parent == NULL
@@ -164,8 +197,15 @@ void dump_code(FILE* fp)
 	for(i=0;i<MAX_SYMBOLS;i++)
 	{
 		if(code[i][0]) /*non empty*/
-			fprintf(fp,"%c %s\n",i,code[i]);
+			fprintf(fp,"<tag>%d</tag>,%s\n",i,code[i]);
 	}
+}
+
+void encode_fp(FILE *fin, FILE *fout) {
+  char c;
+  while ( (c = fgetc(fin)) != EOF ) {
+    fprintf(fout,"%s",code[c]);
+  }
 }
 
 /*
@@ -199,42 +239,79 @@ void cleanall(struct tnode *root) {
 /*
     @function main
 */
-int main()
+
+void usage(void) {
+  printf("Usage for encoder::\
+      encode -i FILENAME -o FILENAME\
+      -i FILENAME, input filename for txt file to compress\
+      -o FILENAME, output filename for txt file to compress\
+      ");
+}
+
+int main(int argc, char *argv[])
 {
     /*test pq*/
     struct tnode* p=NULL;
     struct tnode* lc,*rc;
-    float freq[]={0.01,0.04,0.05,0.11,0.19,0.20,0.4};
-	int   NCHAR=7; /*number of characters*/
+    float freq[MAX_SYMBOLS];
     int i=0;
-	const char *CODE_FILE="code.txt";
-	const char *OUT_FILE="encoded.txt";
-	FILE* fout=NULL;
-	/*zero out code*/
-	memset(code,0,sizeof(code));
+    int opt;
+    int ucnt=0;
+	  const char *CODE_FILE = "code.txt";
+	  const char *IN_FILE;
+	  const char *OUT_FILE;
+	  FILE *fin=NULL;
+    FILE* fout=NULL;
+	  /*zero out code*/
+	  memset(code,0,sizeof(code));
+	  memset(freq,0,sizeof(freq));
 
-	/*testing queue*/
-    pq_insert(talloc('a',0.1));
-    pq_insert(talloc('b',0.2));
-    pq_insert(talloc('c',0.15));
-    /*making sure it pops in the right order*/
-	puts("making sure it pops in the right order");
-	while((p=pq_pop()))
-    {
-        //printf("Symbol:%c, Freq:%f\n",p->symbol,p->freq);
-        free(p);
+
+    //Parse commandline args to get input file from commandline.
+    while( ( opt = (getopt(argc,argv,"i:o:h")) ) != -1 ) {
+      switch(opt) {
+        case 'h':
+          usage();
+          break;
+        case 'i':
+          IN_FILE = optarg;
+          printf("Filename:: %s\n",IN_FILE);
+          break;
+        case 'o':
+          OUT_FILE = optarg;
+          printf("Compressed file:: %s\n",OUT_FILE);
+          break;
+      }
     }
-	
 
+    if(!IN_FILE) {
+      printf("Error! Input file must be provided by user.\n");
+      usage();
+      exit(1);
+    }
+
+    /* fin = fopen(IN_FILE,'r'); */
+    /* fout = fopen(OUT_FILE,'r'); */
+
+
+  fin = fopen(IN_FILE,"r");
+
+  //populate freq
+  parse_file(fin,freq);
+
+  fclose(fin);
 
 	  qhead=NULL;
     /*initialize with freq*/
-    for(i=0;i<NCHAR;i++)
+    for(i=0;i<MAX_SYMBOLS;i++)
     {
-        pq_insert(talloc('a'+i,freq[i]));
+      if(freq[i] != 0) {
+        pq_insert(talloc(i,freq[i]));
+        ucnt++;
+      }
     }
     /*build tree*/
-    for(i=0;i<NCHAR-1;i++)
+    for(i=0;i<ucnt-1;i++)
     {
         lc=pq_pop();
         rc=pq_pop();
@@ -251,7 +328,13 @@ int main()
     }
     /*get root*/
     root=pq_pop();
-	/*build code*/
+
+    if(root==NULL) {
+      printf("Error! tree could not be created\n");
+      exit(1);
+    }
+
+
 	generate_code(root,0);
 	/*output code*/
 	puts("code:");
@@ -261,10 +344,9 @@ int main()
 	fclose(fout);
 
 	/*encode a sample string*/
-	puts("orginal:abba cafe bad");
 	fout=fopen(OUT_FILE,"w");
-	encode("abba cafe bad",stdout);
-	encode("abba cafe bad",fout);
+  fin=fopen(IN_FILE,"r");
+  encode_fp(fin,fout);
 	fclose(fout);
 	getchar();
   cleanall(root);
