@@ -59,12 +59,28 @@ void build_tree(FILE* fp)
 		len=strlen(strcode);
 		for(i=0;i<len;i++)
 		{
-			/*TODO: create the tree as you go*/
+      //Try to traverse root, call talloc to make node if need be.
+      if ( strcode[i] == '1' ) {
+
+        if( curr->right == NULL )
+          curr->right = talloc();
+
+        curr = curr->right;
+      } else if ( strcode[i] == '0' ) {
+        if( curr->left == NULL )
+          curr->left = talloc();
+
+        curr = curr->left;
+      } else {
+        printf("Code table error");
+        exit(1);
+      }
+        
 		}
 		/*assign code*/
 		curr->isleaf=1;
 		curr->symbol=symbol;
-		printf("inserted symbol:%c\n",symbol);
+		printf("inserted symbol:%c\nat address:%p\n",symbol,curr);
 	}
 }
 
@@ -77,11 +93,23 @@ void decode(FILE* fin,FILE* fout)
 	struct tnode* curr=root;
 	while((c=getc(fin))!=EOF)
 	{
-		/*TODO:
-			traverse the tree
-			print the symbols only if you encounter a leaf node
-		*/
+    //Write symbol to file, if found
+    if (c == '1') {
+      curr=curr->right;
+    } else if ( c == '0' ) {
+      curr=curr->left;
+    } else {
+      printf("Decode error");
+      exit(1);
+    }
+
+    if (curr->isleaf) {
+      fputc(curr->symbol,fout);
+      printf("found %c\n",curr->symbol);
+      curr=root;
+    }
 	}
+  fputc('\n',fout);
 }
 /*
 	@function freetree
@@ -98,9 +126,9 @@ void freetree(struct tnode* root)
 }
 int main()
 {
-	const char* IN_FILE="encoded.txt";
-	const char* CODE_FILE="code.txt";
-	const char* OUT_FILE="decoded.txt";
+	const char* IN_FILE="data/encoded.txt";
+	const char* CODE_FILE="data/code.txt";
+	const char* OUT_FILE="data/decoded.txt";
 	FILE* fout;
 	FILE* fin;
 	/*allocate root*/
