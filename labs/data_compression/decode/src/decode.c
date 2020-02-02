@@ -124,6 +124,7 @@ void freetree(struct tnode* root)
 	freetree(root->left);
 	free(root);
 }
+
 int main()
 {
 	const char* IN_FILE="data/encoded.txt";

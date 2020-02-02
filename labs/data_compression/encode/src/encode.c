@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+//#define MAX_SYMBOLS 255
 #define MAX_SYMBOLS 255
 #define MAX_LEN     7
 
@@ -64,18 +66,33 @@ void pq_insert(struct tnode* p)
     struct tnode* curr=NULL;
     struct tnode* prev=NULL;
    printf("inserting:%c,%f\n",p->symbol,p->freq);
-   if(qhead==NULL) /*qhead is null*/
-   {
-   		/*TODO: write code to insert when queue is empty*/
-   }
-   /*TODO: write code to find correct position to insert*/
-   if(curr==qhead)
-   {
-   	 	/*TODO: write code to insert before the current start*/
-   }
-   else /*insert between prev and next*/
-   {
-	 	/*TODO: write code to insert in between*/
+   if(qhead==NULL) {
+     //First element added.
+     qhead=p;
+   } else {
+    for(curr=qhead; curr!=NULL; curr=curr->next) {
+      if( curr->freq > p->freq ) {
+        //We've gone too far, insert it at previous position.
+        //Prevous could be NULL,
+        //  If !NULL
+        //    Insert p between previous and current.
+        //  else
+        //    Insert p at root, followed by curr.
+        if(prev) {
+          prev->next = p;
+          p->next=curr;
+          return;
+        } else {
+          qhead = p;
+          p->next = curr;
+          return;
+        }
+      }
+      prev = curr;
+    }
+    //Searched all elements, and no insertion was done,
+    //insert at end
+    prev->next = p;
    }
 }
 
@@ -88,8 +105,11 @@ void pq_insert(struct tnode* p)
 struct tnode* pq_pop()
 {
     struct tnode* p=NULL;
-    /*TODO: write code to remove front of the queue*/
-	printf("popped:%c,%f\n",p->symbol,p->freq);
+    if(qhead) {
+      p = qhead;
+      qhead = qhead->next;
+	    printf("popped:%c,%f\n",p->symbol,p->freq);
+    }
     return p;
 }
 
@@ -100,18 +120,30 @@ struct tnode* pq_pop()
 */
 void generate_code(struct tnode* root,int depth)
 {
-	int symbol;
+	char symbol;
 	int len; /*length of code*/
+  struct tnode *cur = NULL;
+  struct tnode *prev = root;
 	if(root->isleaf)
 	{
 		symbol=root->symbol;
 		len   =depth;
 		/*start backwards*/
 		code[symbol][len]=0;
-		/*
-			TODO: follow parent pointer to the top
-			to generate the code string
-		*/
+    //Search backwards, and stop when parent == NULL
+    //  When parrent == NULL, then we're at the top of the tree.
+    for(cur=root->parent; cur != NULL; cur=cur->parent) {
+      len--;
+      if(prev == cur->right)
+        code[symbol][len] = '1';
+      else if ( prev == cur->left)
+        code[symbol][len] = '0';
+      else
+        exit(1);
+      //Keep track of previous
+      prev=cur;
+    }
+
 		printf("built code:%c,%s\n",symbol,code[symbol]);
 	}
 	else
@@ -148,6 +180,22 @@ void encode(char* str,FILE* fout)
 		str++;
 	}
 }
+
+/*
+ * @function cleanall
+ */
+void cleanall(struct tnode *root) {
+  if(root->isleaf) {
+    free(root);
+  } else {
+    cleanall(root->right);
+    cleanall(root->left);
+
+    //All children are not clean, clean parent
+    free(root);
+  }
+}
+
 /*
     @function main
 */
@@ -173,12 +221,13 @@ int main()
 	puts("making sure it pops in the right order");
 	while((p=pq_pop()))
     {
+        //printf("Symbol:%c, Freq:%f\n",p->symbol,p->freq);
         free(p);
     }
 	
 
 
-	qhead=NULL;
+	  qhead=NULL;
     /*initialize with freq*/
     for(i=0;i<NCHAR;i++)
     {
@@ -195,8 +244,8 @@ int main()
         lc->parent=rc->parent=p;
         /*set child link*/
         p->right=rc; p->left=lc;
-		/*make it non-leaf*/
-		p->isleaf=0;
+		    /*make it non-leaf*/
+	      p->isleaf=0;
         /*add the new node to the queue*/
         pq_insert(p);
     }
@@ -218,6 +267,6 @@ int main()
 	encode("abba cafe bad",fout);
 	fclose(fout);
 	getchar();
-	/*TODO: clear resources*/
-    return 0;
+  cleanall(root);
+  return 0;
 }
