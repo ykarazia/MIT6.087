@@ -197,7 +197,7 @@ void dump_code(FILE* fp)
 	for(i=0;i<MAX_SYMBOLS;i++)
 	{
 		if(code[i][0]) /*non empty*/
-			fprintf(fp,"<tag>%d</tag>,%s\n",i,code[i]);
+			fprintf(fp,"<tag>%c</tag>,%s\n",i,code[i]);
 	}
 }
 

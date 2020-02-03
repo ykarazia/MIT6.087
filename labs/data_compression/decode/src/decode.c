@@ -111,7 +111,6 @@ void decode(FILE* fin,FILE* fout)
       curr=root;
     }
 	}
-  fputc('\n',fout);
 }
 /*
 	@function freetree
