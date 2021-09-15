@@ -28,7 +28,7 @@ int main (void) {
     }
   } //threads
 
-  pthread_exit(NULL);
+  /* pthread_exit(NULL); */
 
 
 } //main
